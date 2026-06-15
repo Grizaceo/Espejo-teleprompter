@@ -79,10 +79,11 @@ export async function recordChunk(
       if (event.data.size > 0) chunks.push(event.data);
     };
 
-    recorder.onerror = () => {
+    recorder.onerror = (event) => {
       signal?.removeEventListener('abort', onAbort);
       cleanup();
-      reject(recorder.error ?? new Error('Error al grabar audio'));
+      const err = event instanceof ErrorEvent ? event.error : new Error('Error al grabar audio');
+      reject(err);
     };
 
     recorder.onstop = () => {

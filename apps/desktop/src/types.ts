@@ -80,4 +80,10 @@ export interface DesktopApi {
     recordStartedAt: number,
   ) => Promise<{ ok: boolean; matched: boolean; error?: string }>;
   stopRecognition: () => Promise<{ ok: boolean }>;
+
+  // Window controls
+  minimize: () => Promise<{ ok: boolean }>;
+  close: () => Promise<{ ok: boolean }>;
+  setSize: (width: number, height: number) => Promise<{ ok: boolean }>;
+  getSize: () => Promise<{ ok: boolean; width: number; height: number }>;
 }

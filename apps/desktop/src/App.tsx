@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Teleprompter } from './Teleprompter';
 import { DebugLyricsInput } from './DebugLyricsInput';
 import { RecognitionControls } from './RecognitionControls';
+import { WindowControls } from './WindowControls';
 import { INITIAL_RENDER_MODEL } from './initialModel';
 import type { RenderModel, DesktopApi } from './types';
 import './App.css';
@@ -45,6 +46,7 @@ function App() {
       <Teleprompter model={model} />
       <RecognitionControls />
       <DebugLyricsInput />
+      <WindowControls api={window.api} />
     </>
   );
 }

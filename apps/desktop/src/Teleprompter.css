@@ -16,8 +16,68 @@ body {
     width: 100vw;
     padding: 2rem;
     box-sizing: border-box;
-    -webkit-app-region: drag; /* Permite arrastrar la ventana desde cualquier punto */
 }
+
+.drag-handle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    -webkit-app-region: drag;
+    z-index: 900;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.teleprompter-container:hover .drag-handle {
+    opacity: 0.4;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+    opacity: 0.7;
+}
+
+.drag-handle::before {
+    content: '⋮⋮';
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 2px;
+}
+
+/* Zonas de resize invisibles — expanden el área nativa de agarre en bordes/esquinas */
+.resize-edge {
+    position: fixed;
+    -webkit-app-region: no-drag;
+    z-index: 10;
+    background: transparent;
+}
+
+/* Bordes */
+.resize-edge.top { top: 0; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.resize-edge.bottom { bottom: 0; left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.resize-edge.left { top: 8px; bottom: 8px; left: 0; width: 8px; cursor: ew-resize; }
+.resize-edge.right { top: 8px; bottom: 8px; right: 0; width: 8px; cursor: ew-resize; }
+
+/* Esquinas */
+.resize-corner {
+    position: fixed;
+    width: 16px;
+    height: 16px;
+    -webkit-app-region: no-drag;
+    z-index: 11;
+    background: transparent;
+}
+.resize-corner.top-left { top: 0; left: 0; cursor: nwse-resize; }
+.resize-corner.top-right { top: 0; right: 0; cursor: nesw-resize; }
+.resize-corner.bottom-left { bottom: 0; left: 0; cursor: nesw-resize; }
+.resize-corner.bottom-right { bottom: 0; right: 0; cursor: nwse-resize; }
 
 .status-indicator {
     position: absolute;

@@ -105,6 +105,38 @@ function setupSystemAudioCapture(): void {
 }
 
 function registerIpcHandlers(): void {
+  // Window controls
+  ipcMain.handle('window:minimize', (): { ok: boolean } => {
+    mainWindow?.minimize();
+    return { ok: true };
+  });
+
+  ipcMain.handle('window:close', (): { ok: boolean } => {
+    mainWindow?.close();
+    return { ok: true };
+  });
+
+  ipcMain.handle(
+    'window:setSize',
+    (_event, width: number, height: number): { ok: boolean } => {
+      if (mainWindow) {
+        const [minW, minH] = mainWindow.getMinimumSize();
+        const safeWidth = Math.max(width, minW);
+        const safeHeight = Math.max(height, minH);
+        mainWindow.setSize(safeWidth, safeHeight);
+      }
+      return { ok: true };
+    },
+  );
+
+  ipcMain.handle('window:getSize', (): { ok: boolean; width: number; height: number } => {
+    if (mainWindow) {
+      const [width, height] = mainWindow.getSize();
+      return { ok: true, width, height };
+    }
+    return { ok: false, width: 0, height: 0 };
+  });
+
   ipcMain.handle(
     'lyrics:load',
     async (_event, title: string, artist: string): Promise<{ ok: boolean; error?: string }> => {

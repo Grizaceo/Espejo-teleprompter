@@ -20,6 +20,12 @@ const api = {
     };
   },
 
+  // Window controls
+  minimize: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('window:minimize'),
+  close: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('window:close'),
+  setSize: (width: number, height: number): Promise<{ ok: boolean }> => ipcRenderer.invoke('window:setSize', width, height),
+  getSize: (): Promise<{ ok: boolean; width: number; height: number }> => ipcRenderer.invoke('window:getSize'),
+
   loadLyrics: (title: string, artist: string): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('lyrics:load', title, artist),
 
