@@ -72,6 +72,14 @@ export function WindowControls({ api }: WindowControlsProps) {
         </button>
         <button
           type="button"
+          className="win-btn drag-handle-btn"
+          title="Arrastrar para mover"
+          aria-label="Arrastrar para mover"
+        >
+          ⋮⋮
+        </button>
+        <button
+          type="button"
           className="win-btn close"
           onClick={handleClose}
           title="Cerrar"

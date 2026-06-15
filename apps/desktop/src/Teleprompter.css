@@ -20,37 +20,13 @@ body {
     pointer-events: auto; /* Fuerza captura de eventos en áreas transparentes */
 }
 
-.drag-handle {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 120px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    -webkit-app-region: drag !important; /* SOLO este elemento arrastra */
-    z-index: 900;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.teleprompter-container:hover .drag-handle {
-    opacity: 0.4;
-}
-
-.drag-handle:active {
-    cursor: grabbing;
-    opacity: 0.7;
-}
-
-.drag-handle::before {
-    content: '⋮⋮';
-    font-size: 0.7rem;
+.idle-message {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-weight: 300;
     color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 2px;
+    font-size: 0.9em;
 }
 
 .status-indicator {

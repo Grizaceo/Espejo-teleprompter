@@ -2,11 +2,11 @@
 .window-controls {
   position: absolute;
   top: 0.5rem;
-  right: 0.5rem;
+  left: 0.5rem;  /* Cambiado de right a left */
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;  /* Cambiado de flex-end a flex-start */
   gap: 0.35rem;
   pointer-events: auto;
   -webkit-app-region: no-drag !important;
@@ -46,6 +46,23 @@
 
 .win-btn.minimize {
   font-weight: 600;
+}
+
+.win-btn.drag-handle-btn {
+  cursor: grab;
+  -webkit-app-region: drag !important;  /* Este botón arrastra la ventana */
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.win-btn.drag-handle-btn:hover {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.win-btn.drag-handle-btn:active {
+  cursor: grabbing;
 }
 
 .win-btn.close {

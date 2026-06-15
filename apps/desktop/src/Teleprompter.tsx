@@ -15,9 +15,10 @@ export const Teleprompter: React.FC<Props> = ({ model }) => {
 
     const fontSize = `${4 * model.font_scale}rem`;
 
+    const isIdle = model.status === 'IDLE';
+
     return (
         <div className="teleprompter-container" style={containerStyle}>
-            <div className="drag-handle" />
             <div className="status-indicator">{model.status}</div>
 
             <div className="lyrics-display">
@@ -28,7 +29,7 @@ export const Teleprompter: React.FC<Props> = ({ model }) => {
                 </div>
 
                 <div className="lyrics-current" style={{ fontSize }}>
-                    <p>{model.current_line}</p>
+                    <p>{isIdle ? <span className="idle-message">{model.current_line}</span> : model.current_line}</p>
                 </div>
 
                 <div className="lyrics-next">
