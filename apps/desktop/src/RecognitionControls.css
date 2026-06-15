@@ -9,7 +9,7 @@
   gap: 0.35rem;
   max-width: 220px;
   pointer-events: auto;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: no-drag !important;
 }
 
 .recognition-controls button {

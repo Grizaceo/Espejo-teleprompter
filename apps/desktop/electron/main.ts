@@ -40,7 +40,7 @@ function createWindow(): BrowserWindow {
     minHeight: 200,
     frame: false,
     transparent: true,
-    resizable: true,
+    resizable: false,  // Deshabilitado: resize nativo a veces interfiere con click-through en frameless transparent. Usamos window:setSize via IPC.
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,

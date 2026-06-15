@@ -16,7 +16,8 @@ body {
     width: 100vw;
     padding: 2rem;
     box-sizing: border-box;
-    -webkit-app-region: no-drag; /* Captura clics en todo el widget, evita click-through */
+    -webkit-app-region: no-drag !important; /* Captura clics en todo el widget, evita click-through */
+    pointer-events: auto; /* Fuerza captura de eventos en áreas transparentes */
 }
 
 .drag-handle {
@@ -30,7 +31,7 @@ body {
     align-items: center;
     justify-content: center;
     cursor: grab;
-    -webkit-app-region: drag;
+    -webkit-app-region: drag !important; /* SOLO este elemento arrastra */
     z-index: 900;
     opacity: 0;
     transition: opacity 0.2s;
@@ -73,7 +74,8 @@ body {
     gap: 1rem;
     max-width: 80%;
     text-align: center;
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag !important;
+    pointer-events: auto;
 }
 
 .lyrics-previous,
@@ -82,7 +84,8 @@ body {
     font-size: 1.6rem;
     font-weight: 300;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag !important;
+    pointer-events: auto;
 }
 
 .lyrics-current {
@@ -92,7 +95,8 @@ body {
         0 0 10px rgba(255, 255, 255, 0.5),
         0 2px 12px rgba(0, 0, 0, 0.95); /* Glow + sombra para legibilidad sobre cualquier fondo */
     margin: 1rem 0;
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag !important;
+    pointer-events: auto;
 }
 
 .track-info {
@@ -101,5 +105,6 @@ body {
     font-size: 1rem;
     color: rgba(255, 255, 255, 0.7);
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
-    -webkit-app-region: no-drag;
+    -webkit-app-region: no-drag !important;
+    pointer-events: auto;
 }

@@ -9,7 +9,7 @@
   align-items: flex-end;
   gap: 0.35rem;
   pointer-events: auto;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: no-drag !important;
 }
 
 .window-controls-row {
