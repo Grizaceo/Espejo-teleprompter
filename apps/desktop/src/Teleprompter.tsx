@@ -8,18 +8,59 @@ interface Props {
     highContrast: boolean;
 }
 
+/**
+ * Texto romaji con resaltado karaoke palabra-por-palabra según `progress` (0..1).
+ * Divide por espacios (el romaji hepburn 'spaced' separa por palabra) y marca
+ * como "cantadas" las primeras `ceil(progress * nPalabras)`. Da el flow sin
+ * necesitar timings por palabra (interpola sobre la duración de la línea).
+ */
+const KaraokeRomaji: React.FC<{ text: string; progress: number }> = ({ text, progress }) => {
+    const tokens = text.split(/(\s+)/);
+    const isWord = (t: string): boolean => /\S/.test(t);
+    const total = tokens.filter(isWord).length;
+    const active = Math.ceil(Math.max(0, Math.min(1, progress)) * total);
+    return (
+        <>
+            {tokens.map((tok, i) => {
+                if (!isWord(tok)) return tok;
+                // índice de palabra = palabras antes de este token (sin mutar estado en render).
+                const wordIdx = tokens.slice(0, i).filter(isWord).length;
+                return (
+                    <span key={i} className={`kw${wordIdx < active ? ' kw-done' : ''}`}>
+                        {tok}
+                    </span>
+                );
+            })}
+        </>
+    );
+};
+
 /** Render seguro de una línea según el modo de lectura. */
 const LineView: React.FC<{
     line: RenderLine;
     mode: ReadingMode;
     prominent?: boolean;
-}> = ({ line, mode, prominent = false }) => {
+    progress?: number;
+}> = ({ line, mode, prominent = false, progress }) => {
     const hasFurigana = !!line.furigana && line.furigana.length > 0;
     const hasRomaji = !!line.romaji;
+    const karaoke = prominent && typeof progress === 'number' && hasRomaji;
 
     // Modo solo-romaji: la línea principal ES el romaji (cae a texto si no hay).
     if (mode === 'romaji') {
-        return <p className="line-main">{hasRomaji ? line.romaji : line.text}</p>;
+        return (
+            <p className="line-main">
+                {hasRomaji ? (
+                    karaoke ? (
+                        <KaraokeRomaji text={line.romaji!} progress={progress!} />
+                    ) : (
+                        line.romaji
+                    )
+                ) : (
+                    line.text
+                )}
+            </p>
+        );
     }
 
     const showRuby = (mode === 'furigana' || mode === 'furigana_romaji') && hasFurigana;
@@ -43,7 +84,14 @@ const LineView: React.FC<{
                       )
                     : line.text}
             </p>
-            {showRomajiBelow && <p className="line-romaji">{line.romaji}</p>}
+            {showRomajiBelow &&
+                (karaoke ? (
+                    <p className="line-romaji">
+                        <KaraokeRomaji text={line.romaji!} progress={progress!} />
+                    </p>
+                ) : (
+                    <p className="line-romaji">{line.romaji}</p>
+                ))}
         </>
     );
 };
@@ -76,7 +124,12 @@ export const Teleprompter: React.FC<Props> = ({ model, readingMode, highContrast
                         </div>
 
                         <div className="lyrics-current" style={{ fontSize }}>
-                            <LineView line={model.current_line} mode={readingMode} prominent />
+                            <LineView
+                                line={model.current_line}
+                                mode={readingMode}
+                                prominent
+                                progress={model.current_progress}
+                            />
                             {typeof model.current_progress === 'number' && (
                                 <div className="line-progress" aria-hidden="true">
                                     <div

@@ -104,6 +104,24 @@ body {
     margin: 0;
 }
 
+/* Resaltado karaoke palabra-por-palabra sobre el romaji (interpolado). */
+.kw {
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.12s linear;
+}
+
+.kw-done {
+    color: #fff;
+}
+
+.high-contrast .kw {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.high-contrast .kw-done {
+    color: #ffd24a; /* ámbar: la palabra activa "salta" sobre cualquier fondo */
+}
+
 /* Barra de avance dentro de la línea actual (interpolación) — guía de flow. */
 .line-progress {
     margin: 0.5rem auto 0;
