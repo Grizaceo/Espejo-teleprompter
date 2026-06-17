@@ -6,6 +6,7 @@ import { SyncControls } from './SyncControls';
 import { ReadingControls } from './ReadingControls';
 import { WindowControls } from './WindowControls';
 import { useReadingMode } from './useReadingMode';
+import { useHighContrast } from './useHighContrast';
 import { INITIAL_RENDER_MODEL } from './initialModel';
 import type { RenderModel, DesktopApi } from './types';
 import './App.css';
@@ -19,6 +20,7 @@ declare global {
 function App() {
   const [model, setModel] = useState<RenderModel>(INITIAL_RENDER_MODEL);
   const [readingMode, setReadingMode] = useReadingMode();
+  const [highContrast, toggleHighContrast] = useHighContrast();
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
@@ -47,10 +49,15 @@ function App() {
 
   return (
     <>
-      <Teleprompter model={model} readingMode={readingMode} />
+      <Teleprompter model={model} readingMode={readingMode} highContrast={highContrast} />
       <RecognitionControls />
       <SyncControls />
-      <ReadingControls mode={readingMode} onChange={setReadingMode} />
+      <ReadingControls
+        mode={readingMode}
+        onChange={setReadingMode}
+        highContrast={highContrast}
+        onToggleHighContrast={toggleHighContrast}
+      />
       <DebugLyricsInput />
       <WindowControls api={window.api} />
     </>

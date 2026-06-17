@@ -131,3 +131,59 @@ ruby > rt {
     -webkit-app-region: no-drag !important;
     pointer-events: auto;
 }
+
+/* ====================================================================== */
+/* Alto contraste (Capa 1): halo/contorno negro + scrim reforzado para que */
+/* la letra se lea sobre CUALQUIER fondo, sin detección. Default activo.    */
+/* ====================================================================== */
+
+/* Scrim más opaco + desenfoque del fondo detrás del panel. */
+.high-contrast .lyrics-panel {
+    background: rgba(0, 0, 0, 0.72);
+    border-color: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(3px);
+}
+
+/* Halo negro en 8 direcciones + glow suave: relleno claro legible sobre claro u oscuro. */
+.high-contrast .lyrics-current p {
+    color: #fff;
+    -webkit-text-stroke: 1px #000;
+    text-shadow:
+        -2px -2px 0 #000, 2px -2px 0 #000,
+        -2px 2px 0 #000, 2px 2px 0 #000,
+        0 0 6px #000, 0 0 12px rgba(0, 0, 0, 0.95);
+}
+
+.high-contrast .lyrics-previous p,
+.high-contrast .lyrics-next p {
+    color: rgba(255, 255, 255, 0.82); /* menos atenuado: visible sobre fondos claros */
+    -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.9);
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000,
+        0 0 5px rgba(0, 0, 0, 0.9);
+}
+
+.high-contrast .line-romaji {
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000,
+        0 0 5px rgba(0, 0, 0, 0.9);
+}
+
+/* La lectura ruby (kana) también con halo. */
+.high-contrast ruby > rt {
+    color: #fff;
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.high-contrast .idle-footer {
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000,
+        0 0 6px rgba(0, 0, 0, 0.9);
+}

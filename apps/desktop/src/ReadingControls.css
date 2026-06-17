@@ -37,3 +37,19 @@
   color: #fff;
   box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
 }
+
+.reading-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.reading-btn.contrast {
+  font-size: 0.85rem;
+}
+
+.reading-btn.contrast.active {
+  border-color: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}

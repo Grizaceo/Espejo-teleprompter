@@ -5,6 +5,7 @@ import './Teleprompter.css';
 interface Props {
     model: RenderModel;
     readingMode: ReadingMode;
+    highContrast: boolean;
 }
 
 /** Render seguro de una línea según el modo de lectura. */
@@ -47,7 +48,7 @@ const LineView: React.FC<{
     );
 };
 
-export const Teleprompter: React.FC<Props> = ({ model, readingMode }) => {
+export const Teleprompter: React.FC<Props> = ({ model, readingMode, highContrast }) => {
     const containerStyle: React.CSSProperties = {
         transform: model.mirror_mode ? 'scaleX(-1)' : 'none',
         opacity: model.opacity,
@@ -59,7 +60,10 @@ export const Teleprompter: React.FC<Props> = ({ model, readingMode }) => {
     const isIdle = model.status === 'IDLE';
 
     return (
-        <div className="teleprompter-container" style={containerStyle}>
+        <div
+            className={`teleprompter-container${highContrast ? ' high-contrast' : ''}`}
+            style={containerStyle}
+        >
             <div className="status-indicator">{model.status}</div>
 
             {!isIdle && (
