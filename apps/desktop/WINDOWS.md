@@ -58,6 +58,18 @@ npm run dev:electron:win
 - El **medidor de nivel** (▰▰▰▱▱) muestra si llega señal. Si está en rojo/▱▱▱▱▱:
   sube el volumen de Windows o reproduce música.
 
+## Sincronización automática con el reproductor (SMTC) — Windows
+
+En Windows la app lee el **"Now Playing"** del sistema (Spotify, navegador, etc.)
+vía SMTC, usando un PowerShell interno (`powershell.exe`, ya viene en Windows).
+**No tenés que apretar ningún botón**: al reproducir música, la app identifica
+la canción, carga la letra y la sincroniza con la **posición exacta** del
+reproductor, manejando pausa/seek sin deriva. Es la fuente de sync más precisa
+(mejor que AudD). Si no hay sesión de media activa, usás AudD/Micrófono como antes.
+
+> Solo funciona en Windows (en WSL no hay SMTC → no-op). Si una política de
+> seguridad bloquea PowerShell, la app cae a AudD sin romperse.
+
 ## 4. Empaquetar un .exe (opcional)
 
 ```powershell

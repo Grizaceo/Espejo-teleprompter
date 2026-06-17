@@ -17,6 +17,7 @@ import { fetchLyricsByMetadata } from '../services/lrclib';
 import { romanizeTimedLyrics } from '../services/romanize';
 import { NULL_OFFSET_STORE } from '../services/settings';
 import type { OffsetStore } from '../services/settings';
+import type { NowPlaying } from '../services/nowPlaying';
 import type { RenderModel, Status, TimedLyrics, TrackMatch } from '../../src/types';
 
 export type { RecognitionPhase };
@@ -47,6 +48,10 @@ export class StateStore {
   /** Corrección suave de deriva en curso: se ramplea de 0 a este target. */
   private correctionTargetMs = 0;
   private correctionStartedAt = Date.now();
+
+  /** Pausa (de SMTC/reproductor): congela la posición mostrada. */
+  private paused = false;
+  private pausedPositionMs = 0;
 
   private readonly offsetStore: OffsetStore;
 
@@ -198,6 +203,50 @@ export class StateStore {
     this.correctionStartedAt = now;
   }
 
+  /** Congela/reanuda la posición mostrada (pausa del reproductor). */
+  setPaused(p: boolean): void {
+    if (p === this.paused) return;
+    const now = Date.now();
+    if (p) {
+      this.pausedPositionMs = this.currentPosition(now);
+      this.paused = true;
+    } else {
+      this.paused = false;
+      this.reanchor(this.pausedPositionMs, now);
+    }
+  }
+
+  /**
+   * Aplica una lectura del reproductor (Windows SMTC) como fuente de posición
+   * de máxima precisión. Identifica la canción, ancla la posición exacta y
+   * maneja play/pausa. Es preferible a AudD cuando está disponible.
+   */
+  async applyNowPlaying(np: NowPlaying): Promise<void> {
+    const key = normalizeTrackKey(np.artist, np.title);
+
+    if (key !== this.lastMatchKey || !this.engine.getLyrics()) {
+      // Canción nueva (o sin letra aún): cargar letra anclada a la posición real.
+      this.paused = false;
+      await this.loadLyricsByMetadata(np.title, np.artist, np.positionMs, np.atEpochMs);
+      this.setPaused(!np.playing);
+      return;
+    }
+
+    // Misma canción: SMTC es autoritativo. Anclamos a su posición exacta y
+    // reflejamos play/pausa. Solo re-anclamos si hay desvío apreciable
+    // (evita jitter innecesario entre lecturas).
+    if (np.playing) {
+      this.paused = false;
+      const target = np.positionMs + this.syncOffsetMs;
+      if (Math.abs(target - this.currentPosition(np.atEpochMs)) > 120) {
+        this.reanchor(target, np.atEpochMs);
+      }
+    } else {
+      this.pausedPositionMs = np.positionMs + this.syncOffsetMs;
+      this.paused = true;
+    }
+  }
+
   clearRecognition(): void {
     if (
       this.overrideStatus === 'LISTENING' ||
@@ -208,6 +257,7 @@ export class StateStore {
   }
 
   private currentPosition(now: number = Date.now()): number {
+    if (this.paused) return this.pausedPositionMs;
     const elapsed = Math.max(0, now - this.anchoredAt);
     return (
       this.positionMs +

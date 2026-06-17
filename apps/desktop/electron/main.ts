@@ -16,6 +16,7 @@ import { loadDotEnv } from './services/env';
 import { identifyFromAudio } from './services/audd';
 import { createPersistentOffsetStore, NULL_OFFSET_STORE } from './services/settings';
 import type { OffsetStore } from './services/settings';
+import { WindowsNowPlaying } from './services/nowPlaying';
 import type { RecognitionPhase } from './core/stateStore';
 import { setupContentSecurityPolicy } from './csp';
 
@@ -33,6 +34,7 @@ function configureElectronRuntime(): void {
 
 let mainWindow: BrowserWindow | null = null;
 let stateStore: StateStore | null = null;
+let nowPlaying: WindowsNowPlaying | null = null;
 
 function createWindow(): BrowserWindow {
   // En Linux/WSLg una ventana transparent+frameless con GPU deshabilitada NO
@@ -278,6 +280,13 @@ function bootstrap(): void {
   stateStore = new StateStore(mainWindow, offsetStore);
   stateStore.start(100); // 10 Hz
   registerIpcHandlers();
+
+  // Fase 1.5: posición exacta del reproductor vía Windows SMTC (no-op fuera de
+  // Windows). Si hay un "Now Playing", identifica y sincroniza solo, sin AudD.
+  nowPlaying = new WindowsNowPlaying();
+  nowPlaying.start((np) => {
+    if (np) void stateStore?.applyNowPlaying(np);
+  });
 }
 
 // Solo se permite una instancia del widget.
@@ -323,10 +332,12 @@ if (!gotLock) {
 
   app.on('window-all-closed', () => {
     stateStore?.stop();
+    nowPlaying?.stop();
     app.quit();
   });
 
   app.on('before-quit', () => {
     stateStore?.stop();
+    nowPlaying?.stop();
   });
 }
