@@ -35,6 +35,13 @@ export class StateStore {
   private overrideStatus: Status | null = null;
   private lastMatchKey: string | null = null;
   private currentTrackKey: string | null = null;
+  /** TrackKey para el que ya buscamos letra y no había (evita re-fetch infinito:
+   *  cuando lrclib da null, getLyrics() queda null y cada tick de SMTC re-buscaría). */
+  private noLyricsKey: string | null = null;
+  /** TrackKey en fetch en curso. Evita llamadas superpuestas: mientras un fetch
+   *  tarda (lrclib/romanize), los ticks de SMTC (~1 s) no disparan otro fetch
+   *  para la misma pista. Se limpia al terminar (éxito, no-letra o error). */
+  private fetchingKey: string | null = null;
 
   /** Base de posición SIN offset crónico ni corrección: el "crudo" anclado. */
   private positionMs = 0;
@@ -110,6 +117,7 @@ export class StateStore {
     const trackKey = normalizeTrackKey(artist, title);
     this.currentTrackKey = trackKey;
     this.lastMatchKey = trackKey;
+    this.fetchingKey = trackKey; // bloquea fetches superpuestos de la misma pista
     this.syncOffsetMs = this.offsetStore.get(trackKey); // offset crónico persistido
     this.correctionTargetMs = 0;
     this.overrideStatus = 'FETCHING_LYRICS';
@@ -121,6 +129,9 @@ export class StateStore {
       if (!raw) {
         this.setLyrics(null, title, artist);
         this.overrideStatus = 'NO_LYRICS';
+        // Marcamos esta pista como "sin letra" para que los ticks de SMTC no
+        // la re-busquen cada segundo (getLyrics() queda null).
+        this.noLyricsKey = trackKey;
         return;
       }
 
@@ -130,12 +141,16 @@ export class StateStore {
       const projected = projectAnchoredPosition(anchorMs, anchorAt);
 
       this.overrideStatus = null;
+      this.noLyricsKey = null; // encontramos letra: limpiar el flag de "sin letra".
       this.setLyrics(lyrics, title, artist);
       this.reanchor(projected.positionMs + this.syncOffsetMs, projected.anchorAt);
     } catch (err) {
       this.setLyrics(null, title, artist);
       this.overrideStatus = 'ERROR';
+      this.noLyricsKey = trackKey; // no re-intentar hasta que cambie la pista
       throw err;
+    } finally {
+      this.fetchingKey = null; // libera el bloqueo sea cual sea el resultado
     }
   }
 
@@ -224,12 +239,38 @@ export class StateStore {
   async applyNowPlaying(np: NowPlaying): Promise<void> {
     const key = normalizeTrackKey(np.artist, np.title);
 
-    if (key !== this.lastMatchKey || !this.engine.getLyrics()) {
+    // Cargamos letra solo si es canción nueva Y no sabemos ya que no tiene
+    // letra (noLyricsKey) Y no hay un fetch en curso para esta pista
+    // (fetchingKey). Esto evita un bucle de re-fetch: cuando lrclib no
+    // encuentra letra, getLyrics() queda null y, sin estos guards, cada tick
+    // de SMTC (~1 s) re-buscaría la misma pista; y mientras un fetch tarda,
+    // nuevos ticks dispararían fetches superpuestos.
+    const isNewSong = key !== this.lastMatchKey || !this.engine.getLyrics();
+    const alreadyKnownNoLyrics = key === this.noLyricsKey;
+    const fetchInProgress = key === this.fetchingKey;
+
+    if (isNewSong && !alreadyKnownNoLyrics && !fetchInProgress) {
       // Canción nueva (o sin letra aún): cargar letra anclada a la posición real.
       this.paused = false;
       await this.loadLyricsByMetadata(np.title, np.artist, np.positionMs, np.atEpochMs);
       this.setPaused(!np.playing);
       return;
+    }
+
+    if (fetchInProgress) {
+      // Fetch en curso: solo reflejar pausa, no re-buscar.
+      this.setPaused(!np.playing);
+      return;
+    }
+
+    if (alreadyKnownNoLyrics && key !== this.lastMatchKey) {
+      // Misma pista marcada sin letra: registrar título/artista para el UI sin
+      // re-buscar, y reflejar pausa.
+      this.trackTitle = np.title;
+      this.trackArtist = np.artist;
+      this.lastMatchKey = key;
+      this.overrideStatus = 'NO_LYRICS';
+      this.setPaused(!np.playing);
     }
 
     // Misma canción: SMTC es autoritativo. Anclamos a su posición exacta y

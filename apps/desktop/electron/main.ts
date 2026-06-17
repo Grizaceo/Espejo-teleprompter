@@ -292,8 +292,11 @@ function bootstrap(): void {
   });
 
   // Fase 2: muestreo de luminancia del fondo para contraste adaptativo.
-  // Funciona en Windows y WSLg. Si desktopCapturer falla, queda no-op y el
-  // renderer usa texto blanco + halo por defecto (no rompe nada).
+  // En Windows captura el escritorio real; en WSLg desktopCapturer devuelve un
+  // buffer negro (limitación conocida), pero allá la ventana es opaca con fondo
+  // oscuro, así que el texto blanco+halo (dark-bg) sigue siendo correcto.
+  // Si desktopCapturer falla por completo, queda no-op y el renderer usa texto
+  // blanco + halo por defecto (no rompe nada).
   backgroundSampler = new BackgroundSampler(mainWindow);
   backgroundSampler.start();
 }
