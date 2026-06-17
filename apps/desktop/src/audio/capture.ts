@@ -103,15 +103,41 @@ export class SystemAudioSession {
   }
 }
 
-async function openMicrophoneStream(): Promise<MediaStream> {
+/** Dispositivo de entrada de audio disponible (mic, Stereo Mix, CABLE, etc). */
+export interface AudioInputDevice {
+  deviceId: string;
+  label: string;
+}
+
+/**
+ * Lista los dispositivos de entrada de audio. enumerateDevices() solo expone
+ * las etiquetas tras un permiso de micrófono concedido, así que "cebamos" un
+ * getUserMedia breve (en Electron es auto-concedido, sin prompt).
+ */
+export async function listAudioInputs(): Promise<AudioInputDevice[]> {
+  if (!navigator.mediaDevices?.enumerateDevices) return [];
   try {
-    return await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-    });
+    const primer = await navigator.mediaDevices.getUserMedia({ audio: true });
+    primer.getTracks().forEach((t) => t.stop());
+  } catch {
+    /* sin permiso: enumeramos igual; las etiquetas pueden venir vacías */
+  }
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices
+    .filter((d) => d.kind === 'audioinput')
+    .map((d, i) => ({ deviceId: d.deviceId, label: d.label || `Entrada ${i + 1}` }));
+}
+
+async function openMicrophoneStream(deviceId?: string): Promise<MediaStream> {
+  const audio: MediaTrackConstraints = {
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+  if (deviceId) audio.deviceId = { exact: deviceId };
+
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio });
   } catch (err) {
     // Mensajes accionables según el motivo (permiso vs ausencia de micrófono).
     const name = err instanceof DOMException ? err.name : '';
@@ -197,6 +223,7 @@ export async function recordChunk(
   durationMs = RECORD_MS,
   signal?: AbortSignal,
   systemSession?: SystemAudioSession,
+  micDeviceId?: string,
 ): Promise<RecordedChunk> {
   if (source === 'system') {
     const session = systemSession ?? new SystemAudioSession();
@@ -211,7 +238,7 @@ export async function recordChunk(
     }
   }
 
-  const stream = await openMicrophoneStream();
+  const stream = await openMicrophoneStream(micDeviceId);
   return await recordWithMediaRecorder(stream, durationMs, signal, true);
 }
 

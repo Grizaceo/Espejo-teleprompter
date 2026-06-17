@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioSource } from './types';
 import {
+  type AudioInputDevice,
   CAPTURE_PAUSE_MS,
   CAPTURE_RECORD_MS,
   CAPTURE_RESYNC_PAUSE_MS,
+  listAudioInputs,
   recordChunk,
   sleep,
   SILENCE_PEAK,
   SystemAudioSession,
 } from './audio/capture';
 import './RecognitionControls.css';
+
+const MIC_DEVICE_KEY = 'espejo.micDeviceId';
 
 /** Medidor de nivel: 5 bloques llenados según el pico medido (0..1). */
 function LevelMeter({ level }: { level: number }) {
@@ -31,8 +35,46 @@ export function RecognitionControls() {
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState(0);
+  const [inputs, setInputs] = useState<AudioInputDevice[]>([]);
+  const [micDeviceId, setMicDeviceId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(MIC_DEVICE_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const abortRef = useRef<AbortController | null>(null);
   const systemSessionRef = useRef<SystemAudioSession | null>(null);
+  // Ref espejo del dispositivo elegido para que el loop en curso lea el valor actual.
+  const micDeviceIdRef = useRef(micDeviceId);
+
+  const selectDevice = useCallback((id: string) => {
+    setMicDeviceId(id);
+    micDeviceIdRef.current = id;
+    try {
+      if (id) localStorage.setItem(MIC_DEVICE_KEY, id);
+      else localStorage.removeItem(MIC_DEVICE_KEY);
+    } catch {
+      /* localStorage no disponible */
+    }
+  }, []);
+
+  // Enumerar entradas de audio (mic, Stereo Mix, CABLE Output…) y refrescar
+  // cuando cambian los dispositivos.
+  useEffect(() => {
+    if (!window.api || !navigator.mediaDevices) return;
+    let cancelled = false;
+    const refresh = async (): Promise<void> => {
+      const list = await listAudioInputs();
+      if (!cancelled) setInputs(list);
+    };
+    void refresh();
+    navigator.mediaDevices.addEventListener?.('devicechange', refresh);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices.removeEventListener?.('devicechange', refresh);
+    };
+  }, []);
 
   const stopListening = useCallback(async () => {
     abortRef.current?.abort();
@@ -92,6 +134,7 @@ export function RecognitionControls() {
             CAPTURE_RECORD_MS,
             controller.signal,
             systemSessionRef.current ?? undefined,
+            micDeviceIdRef.current || undefined,
           );
           setLevel(level);
 
@@ -217,10 +260,27 @@ export function RecognitionControls() {
         className={activeSource === 'microphone' ? 'active' : ''}
         onClick={() => void startListening('microphone')}
         disabled={activeSource !== null}
-        title="Captura audio desde el micrófono"
+        title="Captura audio desde la entrada seleccionada (mic / Stereo Mix / CABLE)"
       >
         Micrófono
       </button>
+      <select
+        className="mic-device-select"
+        value={micDeviceId}
+        onChange={(e) => selectDevice(e.target.value)}
+        disabled={activeSource !== null}
+        title="Entrada del micrófono. Para audio del sistema en WSL elige Stereo Mix o CABLE Output."
+      >
+        <option value="">Entrada predeterminada</option>
+        {micDeviceId && !inputs.some((d) => d.deviceId === micDeviceId) && (
+          <option value={micDeviceId}>Dispositivo guardado</option>
+        )}
+        {inputs.map((d) => (
+          <option key={d.deviceId} value={d.deviceId}>
+            {d.label}
+          </option>
+        ))}
+      </select>
       {activeSource && (
         <button type="button" className="stop" onClick={() => void stopListening()}>
           Detener

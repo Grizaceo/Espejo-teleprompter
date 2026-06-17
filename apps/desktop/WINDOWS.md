@@ -67,6 +67,26 @@ Genera el instalador en `apps\desktop\release\Espejo Teleprompter-Setup-0.1.0.ex
 (NSIS x64, según `electron-builder.yml`). Incluye el diccionario de kuromoji para
 que el furigana funcione en la app empaquetada.
 
+## Capturar audio del sistema **desde WSL** (sin correr en Windows)
+
+WSL no puede tomar el loopback de Windows directamente, pero sí ve el
+**dispositivo de grabación** de Windows (vía `RDPSource`). Si hacés que ese
+dispositivo sea el audio del sistema, el botón **"Micrófono"** en WSL lo captura:
+
+1. En **Windows**, habilitá una de estas entradas de captura del sistema:
+   - **Stereo Mix** (gratis, en muchas placas Realtek): Configuración de sonido →
+     Más opciones de sonido → pestaña *Grabar* → mostrar deshabilitados → habilitar
+     **Stereo Mix**.
+   - **VB-Audio Virtual Cable** (gratis): enviá la salida del sistema a `CABLE Input`
+     y usá `CABLE Output` como entrada.
+2. En la app (corriendo en WSL), en el **selector de entrada** debajo del botón
+   *Micrófono*, elegí **Stereo Mix** o **CABLE Output**.
+3. Apretá **"Micrófono"** → captura el audio del sistema de Windows. El medidor
+   `▰▰▰` confirma la señal.
+
+> El selector recuerda tu elección (localStorage), así no tenés que cambiar el
+> dispositivo predeterminado de Windows.
+
 ## Troubleshooting
 
 | Síntoma | Causa / solución |

@@ -58,6 +58,29 @@
   color: #93c5fd;
 }
 
+.mic-device-select {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+  -webkit-app-region: no-drag !important;
+}
+
+.mic-device-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mic-device-select option {
+  background: #14141a;
+  color: #fff;
+}
+
 .level-meter {
   font-size: 0.7rem;
   letter-spacing: 1px;
