@@ -77,6 +77,14 @@ export const Teleprompter: React.FC<Props> = ({ model, readingMode, highContrast
 
                         <div className="lyrics-current" style={{ fontSize }}>
                             <LineView line={model.current_line} mode={readingMode} prominent />
+                            {typeof model.current_progress === 'number' && (
+                                <div className="line-progress" aria-hidden="true">
+                                    <div
+                                        className="line-progress-fill"
+                                        style={{ width: `${Math.round(model.current_progress * 100)}%` }}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="lyrics-next">

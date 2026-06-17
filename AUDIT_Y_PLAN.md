@@ -122,11 +122,14 @@ El plan ataca las dos columnas del objetivo en paralelo: **(A) sincronización p
 4. ✅ **Caché de romanización** por texto de línea (resuelve J3): `analyzeLine` cachea (kuroshiro es pesado); evita reprocesar líneas repetidas y recargas.
 5. ⏳ **(Avanzado) modo mora** para marcar ritmo (J5): pendiente — encaja mejor junto con Fase 3 (sub-línea).
 
-### FASE 3 — Granularidad sub-línea (karaoke para rap) 🔴→🟠
+### FASE 3 — Granularidad sub-línea (karaoke para rap) 🔴→🟠 (parcial)
 
-1. **Parsear Enhanced LRC (A2)** cuando lrclib lo provea: `<mm:ss.xx>palabra` → timing por palabra; resaltado karaoke palabra-por-palabra (resuelve S4).
-2. **Interpolación dentro de la línea** como fallback universal: una barra/resaltado que barre la línea actual según `(pos − start)/(end − start)`. Da el "dónde voy" aunque la letra sea solo a nivel de línea.
-3. **Letra plana**: en vez de 5 s/línea ficticios (S6), repartir proporcionalmente a `duration_ms` de la pista, o desactivar auto-scroll y dejar control manual.
+1. ⏳ **Parsear Enhanced LRC (A2)** cuando lrclib lo provea: `<mm:ss.xx>palabra` → timing por palabra; resaltado karaoke (pendiente).
+2. ✅ **Interpolación dentro de la línea**: `current_progress` (0..1) en `RenderModel`, calculado en `syncEngine` solo con letra sincronizada; el Teleprompter dibuja una **barra de avance** bajo la línea actual (con variante alto contraste). Da el "dónde voy" con cualquier LRC. (S4 parcial.)
+3. ⏳ **Modo mora** (japonés): partir la línea/romaji en moras y resaltar la activa (pendiente).
+4. ⏳ **Letra plana**: repartir por `duration_ms` en vez de 5 s/línea ficticios (S6) (pendiente).
+
+> **Capa 1 de legibilidad — ✅ HECHA:** toggle "◐" alto contraste (default ON), halo negro 8-direcciones + contorno + scrim reforzado. Verificado legible sobre fondo claro variado. Capa 2 (contraste adaptativo por captura de pantalla) pendiente como modo avanzado de overlay en Windows.
 
 ### FASE 4 — Reconocimiento robusto 🟠
 

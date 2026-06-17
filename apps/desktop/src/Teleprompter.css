@@ -104,6 +104,35 @@ body {
     margin: 0;
 }
 
+/* Barra de avance dentro de la línea actual (interpolación) — guía de flow. */
+.line-progress {
+    margin: 0.5rem auto 0;
+    width: 70%;
+    max-width: 22rem;
+    height: 3px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+}
+
+.line-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.85);
+    /* El modelo llega a ~10 Hz; una transición corta suaviza el avance. */
+    transition: width 0.12s linear;
+}
+
+.high-contrast .line-progress {
+    background: rgba(0, 0, 0, 0.55);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.high-contrast .line-progress-fill {
+    background: #ffd24a;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
 /* Furigana (ruby): la lectura en kana va más pequeña encima del kanji. */
 ruby > rt {
     font-size: 0.42em;

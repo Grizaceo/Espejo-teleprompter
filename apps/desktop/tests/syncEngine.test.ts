@@ -45,6 +45,25 @@ describe('SyncEngine', () => {
     expect(model.next_lines).toEqual([]);
   });
 
+  it('calcula el avance interpolado dentro de la línea (synced)', () => {
+    expect(engine.getRenderModel(500).current_progress).toBeCloseTo(0.5); // Line 1: 0–1000
+    expect(engine.getRenderModel(1250).current_progress).toBeCloseTo(0.25); // Line 2: 1000–2000
+    expect(engine.getRenderModel(0).current_progress).toBeCloseTo(0);
+  });
+
+  it('no expone avance con letra no sincronizada', () => {
+    const plain = new SyncEngine();
+    plain.setLyrics({
+      source: 'test',
+      synced: false,
+      lines: [
+        { start_ms: 0, text: 'a' },
+        { start_ms: 5000, text: 'b' },
+      ],
+    });
+    expect(plain.getRenderModel(1000).current_progress).toBeUndefined();
+  });
+
   it('devuelve NO_LYRICS cuando no hay letra cargada', () => {
     const empty = new SyncEngine();
     const model = empty.getRenderModel(0);

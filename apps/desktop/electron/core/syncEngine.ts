@@ -108,10 +108,24 @@ export class SyncEngine {
       nextLines.push(toRenderLine(lines[i]));
     }
 
+    // Avance interpolado dentro de la línea actual (solo con letra sincronizada).
+    let currentProgress: number | undefined;
+    if (lyrics.synced) {
+      const cur = lines[currentIndex];
+      let end: number;
+      if (cur.end_ms != null) end = cur.end_ms;
+      else if (currentIndex + 1 < lines.length) end = lines[currentIndex + 1].start_ms;
+      else end = NaN;
+      if (Number.isFinite(end) && end > cur.start_ms) {
+        currentProgress = Math.max(0, Math.min(1, (positionMs - cur.start_ms) / (end - cur.start_ms)));
+      }
+    }
+
     return {
       previous_lines: previousLines,
       current_line: currentLine,
       next_lines: nextLines,
+      current_progress: currentProgress,
       font_scale: 1.0,
       opacity: 1.0,
       alignment: 'center',

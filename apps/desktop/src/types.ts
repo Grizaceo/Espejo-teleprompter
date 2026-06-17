@@ -77,6 +77,10 @@ export interface RenderModel {
   current_line: RenderLine;
   next_lines: RenderLine[];
 
+  /** Avance dentro de la línea actual (0..1), solo con letra sincronizada.
+   *  Permite un resaltado karaoke interpolado para seguir el flow. */
+  current_progress?: number;
+
   font_scale: number;
   opacity: number;
   alignment: "left" | "center" | "right";
