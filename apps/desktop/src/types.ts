@@ -94,10 +94,6 @@ export interface RenderModel {
    *  presente, el renderer hace karaoke por timing REAL en vez de interpolar. */
   current_word_index?: number;
 
-  /** Luminancia del fondo detrás del widget (0..1). Usado por el renderer para
-   *  elegir texto negro (fondos claros) o blanco (fondos oscuros). */
-  background_luminance?: number;
-
   font_scale: number;
   opacity: number;
   alignment: "left" | "center" | "right";
@@ -117,8 +113,6 @@ export type AudioSource = 'microphone' | 'system';
 /** API expuesta por el preload script al renderer. */
 export interface DesktopApi {
   onRenderModel: (cb: (model: RenderModel) => void) => () => void;
-  /** Luminancia del fondo (0..1), emitida ~2 Hz. undefined si no hay sampling. */
-  onBackgroundLuminance: (cb: (luminance: number) => void) => () => void;
   loadLyrics: (title: string, artist: string) => Promise<{ ok: boolean; error?: string }>;
   setRecognitionPhase: (phase: 'LISTENING' | 'IDENTIFYING' | null) => Promise<{ ok: boolean }>;
   identifyAudio: (

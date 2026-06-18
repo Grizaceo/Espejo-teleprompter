@@ -6,7 +6,6 @@ import { SyncControls } from './SyncControls';
 import { ReadingControls } from './ReadingControls';
 import { WindowControls } from './WindowControls';
 import { useReadingMode } from './useReadingMode';
-import { useHighContrast } from './useHighContrast';
 import { INITIAL_RENDER_MODEL } from './initialModel';
 import type { RenderModel, DesktopApi } from './types';
 import './App.css';
@@ -19,9 +18,7 @@ declare global {
 
 function App() {
   const [model, setModel] = useState<RenderModel>(INITIAL_RENDER_MODEL);
-  const [bgLuminance, setBgLuminance] = useState<number | undefined>(undefined);
   const [readingMode, setReadingMode] = useReadingMode();
-  const [highContrast, toggleHighContrast] = useHighContrast();
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
@@ -43,31 +40,17 @@ function App() {
     });
     unsubscribeRef.current = unsubscribe;
 
-    const unsubLum = window.api.onBackgroundLuminance((value) => {
-      setBgLuminance(value);
-    });
-
     return () => {
       unsubscribe();
-      unsubLum();
     };
   }, []);
 
-  // Modelo enriquecido con luminancia del fondo (se inyecta en el RenderModel
-  // para que el Teleprompter decida el color del texto).
-  const enrichedModel: RenderModel = { ...model, background_luminance: bgLuminance };
-
   return (
     <>
-      <Teleprompter model={enrichedModel} readingMode={readingMode} highContrast={highContrast} />
+      <Teleprompter model={model} readingMode={readingMode} />
       <RecognitionControls />
       <SyncControls />
-      <ReadingControls
-        mode={readingMode}
-        onChange={setReadingMode}
-        highContrast={highContrast}
-        onToggleHighContrast={toggleHighContrast}
-      />
+      <ReadingControls mode={readingMode} onChange={setReadingMode} />
       <DebugLyricsInput />
       <WindowControls api={window.api} />
     </>

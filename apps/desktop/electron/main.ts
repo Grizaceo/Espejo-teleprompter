@@ -17,7 +17,6 @@ import { identifyFromAudio } from './services/audd';
 import { createPersistentOffsetStore, NULL_OFFSET_STORE } from './services/settings';
 import type { OffsetStore } from './services/settings';
 import { WindowsNowPlaying } from './services/nowPlaying';
-import { BackgroundSampler } from './services/backgroundSampler';
 import type { RecognitionPhase } from './core/stateStore';
 import { setupContentSecurityPolicy } from './csp';
 
@@ -36,7 +35,6 @@ function configureElectronRuntime(): void {
 let mainWindow: BrowserWindow | null = null;
 let stateStore: StateStore | null = null;
 let nowPlaying: WindowsNowPlaying | null = null;
-let backgroundSampler: BackgroundSampler | null = null;
 
 function createWindow(): BrowserWindow {
   // En Linux/WSLg una ventana transparent+frameless con GPU deshabilitada NO
@@ -290,15 +288,6 @@ function bootstrap(): void {
   nowPlaying.start((np) => {
     if (np) void stateStore?.applyNowPlaying(np);
   });
-
-  // Fase 2: muestreo de luminancia del fondo para contraste adaptativo.
-  // En Windows captura el escritorio real; en WSLg desktopCapturer devuelve un
-  // buffer negro (limitación conocida), pero allá la ventana es opaca con fondo
-  // oscuro, así que el texto blanco+halo (dark-bg) sigue siendo correcto.
-  // Si desktopCapturer falla por completo, queda no-op y el renderer usa texto
-  // blanco + halo por defecto (no rompe nada).
-  backgroundSampler = new BackgroundSampler(mainWindow);
-  backgroundSampler.start();
 }
 
 // Solo se permite una instancia del widget.
@@ -345,13 +334,11 @@ if (!gotLock) {
   app.on('window-all-closed', () => {
     stateStore?.stop();
     nowPlaying?.stop();
-    backgroundSampler?.stop();
     app.quit();
   });
 
   app.on('before-quit', () => {
     stateStore?.stop();
     nowPlaying?.stop();
-    backgroundSampler?.stop();
   });
 }

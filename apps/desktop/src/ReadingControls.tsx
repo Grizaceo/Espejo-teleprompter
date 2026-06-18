@@ -4,8 +4,6 @@ import './ReadingControls.css';
 interface Props {
   mode: ReadingMode;
   onChange: (mode: ReadingMode) => void;
-  highContrast: boolean;
-  onToggleHighContrast: () => void;
 }
 
 const OPTIONS: { key: ReadingMode; label: string; title: string }[] = [
@@ -15,8 +13,8 @@ const OPTIONS: { key: ReadingMode; label: string; title: string }[] = [
   { key: 'furigana_romaji', label: 'ふ+A', title: 'Furigana + romaji' },
 ];
 
-/** Selector del modo de lectura + alto contraste (clave para rapear en japonés). */
-export function ReadingControls({ mode, onChange, highContrast, onToggleHighContrast }: Props) {
+/** Selector del modo de lectura (clave para rapear en japonés). */
+export function ReadingControls({ mode, onChange }: Props) {
   return (
     <div className="reading-controls" title="Modo de lectura">
       {OPTIONS.map((opt) => (
@@ -32,17 +30,6 @@ export function ReadingControls({ mode, onChange, highContrast, onToggleHighCont
           {opt.label}
         </button>
       ))}
-      <span className="reading-sep" aria-hidden="true" />
-      <button
-        type="button"
-        className={`reading-btn contrast${highContrast ? ' active' : ''}`}
-        onClick={onToggleHighContrast}
-        title="Alto contraste: halo + fondo para que la letra se lea sobre cualquier fondo"
-        aria-label="Alto contraste"
-        aria-pressed={highContrast}
-      >
-        ◐
-      </button>
     </div>
   );
 }

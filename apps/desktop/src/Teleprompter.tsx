@@ -2,22 +2,21 @@ import React from 'react';
 import type { FuriganaSegment, ReadingMode, RenderLine, RenderModel, Status, WordTiming } from './types';
 import './Teleprompter.css';
 
-/** Traduce el enum crudo de estado a una etiqueta corta legible. */
-const STATUS_LABEL: Record<Status, string> = {
-    IDLE: '⏸ Esperando',
-    LISTENING: '🎙 Escuchando',
-    IDENTIFYING: '🔎 Identificando',
-    FETCHING_LYRICS: '⏳ Buscando letra',
-    DISPLAYING: '▶ Sincronizado',
-    NO_LYRICS: '❌ Sin letra',
-    ERROR: '⚠ Error',
-};
-
 interface Props {
     model: RenderModel;
     readingMode: ReadingMode;
-    highContrast: boolean;
 }
+
+/** Traduce el enum crudo de estado a una etiqueta corta legible (estilo Singevery). */
+const STATUS_LABEL: Record<Status, string> = {
+    IDLE: 'Esperando',
+    LISTENING: 'Escuchando',
+    IDENTIFYING: 'Identificando',
+    FETCHING_LYRICS: 'Buscando letra',
+    DISPLAYING: '',
+    NO_LYRICS: 'Sin letra',
+    ERROR: 'Error',
+};
 
 /**
  * Karaoke por palabra. Dos modos:
@@ -169,9 +168,7 @@ const LineView: React.FC<{
     );
 };
 
-const LIGHT_THRESHOLD = 0.55;
-
-export const Teleprompter: React.FC<Props> = ({ model, readingMode, highContrast }) => {
+export const Teleprompter: React.FC<Props> = ({ model, readingMode }) => {
     const containerStyle: React.CSSProperties = {
         transform: model.mirror_mode ? 'scaleX(-1)' : 'none',
         opacity: model.opacity,
@@ -179,30 +176,34 @@ export const Teleprompter: React.FC<Props> = ({ model, readingMode, highContrast
     };
 
     const fontSize = `${4 * model.font_scale}rem`;
-
     const isIdle = model.status === 'IDLE';
-
-    // Clases de fondo adaptativo:
-    // - highContrast ON → fuerza dark-bg (texto blanco, halo potente 8-dir).
-    // - highContrast OFF → usa luminancia del fondo:
-    //     > LIGHT_THRESHOLD → light-bg (texto negro, halo blanco fino).
-    //     <= LIGHT_THRESHOLD → dark-bg  (texto blanco, halo negro fino).
-    // - Sin luminancia (sampler no disponible) → default dark-bg (seguro).
-    const bgClass =
-        highContrast
-            ? 'high-contrast'
-            : typeof model.background_luminance === 'number'
-                ? model.background_luminance > LIGHT_THRESHOLD
-                    ? 'light-bg'
-                    : 'dark-bg'
-                : 'dark-bg';
+    const hasTrack = !!(model.track_title || model.track_artist);
+    const statusLabel = STATUS_LABEL[model.status] ?? model.status;
 
     return (
-        <div
-            className={`teleprompter-container ${bgClass}`}
-            style={containerStyle}
-        >
-            <div className="status-indicator">{STATUS_LABEL[model.status]}</div>
+        <div className="teleprompter-container" style={containerStyle}>
+            {/* Header top-left: título + artista cuando hay canción; estado cuando no.
+                Incluye el chip "via <fuente>" para saber de dónde vino la letra. */}
+            <div className="track-header">
+                {hasTrack ? (
+                    <>
+                        {model.track_title && (
+                            <div className="track-header-title">{model.track_title}</div>
+                        )}
+                        {model.track_artist && (
+                            <div className="track-header-artist">{model.track_artist}</div>
+                        )}
+                        {statusLabel && (
+                            <div className="track-header-status">
+                                {statusLabel}
+                                {model.lyrics_source ? ` · via ${model.lyrics_source}` : ''}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    statusLabel && <div className="track-header-status">{statusLabel}</div>
+                )}
+            </div>
 
             {!isIdle && (
                 <div className="lyrics-panel">
@@ -240,21 +241,7 @@ export const Teleprompter: React.FC<Props> = ({ model, readingMode, highContrast
                 </div>
             )}
 
-            {(model.track_title || model.track_artist) && (
-                <div className="track-info">
-                    <h2>{model.track_title}</h2>
-                    <h3>{model.track_artist}</h3>
-                    {model.lyrics_source && (
-                        <span className="lyrics-source-chip" title={'Letra vía ' + model.lyrics_source}>
-                            via {model.lyrics_source}
-                        </span>
-                    )}
-                </div>
-            )}
-
-            {isIdle && (
-                <div className="idle-footer">{model.current_line.text}</div>
-            )}
+            {isIdle && <div className="idle-footer">{model.current_line.text}</div>}
         </div>
     );
 };

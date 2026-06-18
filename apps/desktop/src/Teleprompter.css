@@ -1,4 +1,5 @@
-/* Teleprompter.css — adaptado para ventana Electron transparente */
+/* Teleprompter.css — UI translúcida como Singevery (panel con scrim suave +
+   texto blanco con halo). Conserva barra de progreso y karaoke por palabra. */
 body {
     background-color: transparent;
     color: white;
@@ -27,54 +28,69 @@ body {
     width: 100%;
     text-align: center;
     font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
     font-size: 0.85rem;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
     -webkit-app-region: no-drag !important;
     pointer-events: auto;
 }
 
-.status-indicator {
+/* Header top-left: título, artista y estado (layout de Singevery). */
+.track-header {
     position: absolute;
-    top: 1rem;
+    top: 0.75rem;
     left: 1rem;
     z-index: 900;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    /* Chip semitransparente que se rellena según el fondo para legibilidad. */
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    max-width: 55%;
     -webkit-app-region: no-drag;
+    pointer-events: auto;
 }
 
-/* Chip de status: negro translúcido sobre fondo claro, blanco sobre oscuro. */
-.dark-bg .status-indicator {
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-}
-.light-bg .status-indicator {
-    color: rgba(0, 0, 0, 0.8);
-    background: rgba(255, 255, 255, 0.55);
-    border: 1px solid rgba(0, 0, 0, 0.18);
-}
-.high-contrast .status-indicator {
-    color: #fff;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.track-header-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Panel de letras: SIN scrim. La ventana es realmente transparente; la
-   legibilidad la garantiza el halo del texto (color adaptativo al fondo). */
+.track-header-artist {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-header-status {
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.1rem;
+}
+
+/* Panel de letras: translúcido (scrim suave) para legibilidad sobre cualquier
+   fondo, pero sin tapar del todo el fondo de Windows. Layout de Singevery. */
 .lyrics-panel {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     max-width: 100%;
-    padding: 2.6rem 0.9rem 3.4rem;
+    /* top: deja espacio para el track-header; bottom: para los controles */
+    padding: 3.8rem 0.9rem 4rem;
     box-sizing: border-box;
-    background: transparent;
+    background: rgba(0, 0, 0, 0.45);
     border-radius: 12px;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     -webkit-app-region: no-drag !important;
     pointer-events: auto;
 }
@@ -92,14 +108,20 @@ body {
 
 .lyrics-previous,
 .lyrics-next {
+    color: rgba(255, 255, 255, 0.4); /* Dimmed */
     font-size: 1.6rem;
     font-weight: 300;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
     -webkit-app-region: no-drag !important;
     pointer-events: auto;
 }
 
 .lyrics-current {
     font-weight: 700;
+    color: #fff;
+    text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.5),
+        0 2px 12px rgba(0, 0, 0, 0.95); /* Glow + sombra para legibilidad sobre cualquier fondo */
     margin: 1rem 0;
     -webkit-app-region: no-drag !important;
     pointer-events: auto;
@@ -111,26 +133,32 @@ body {
     margin: 0;
 }
 
-/* Resaltado karaoke palabra-por-palabra sobre el romaji (interpolado).
-   El color se define por .dark-bg/.light-bg/.high-contrast más abajo. */
+/* Resaltado karaoke palabra-por-palabra (sobre el romaji o el texto con A2).
+   El texto base es tenue; la palabra activa (kw-done) salta en blanco/ámbar. */
 .kw {
+    color: rgba(255, 255, 255, 0.4);
     transition: color 0.12s linear;
 }
 
-/* Barra de avance dentro de la línea actual (interpolación) — guía de flow.
-   El color del fill/track se define por .dark-bg/.light-bg/.high-contrast. */
+.kw-done {
+    color: #ffd24a; /* ámbar: la palabra activa "salta" sobre el panel translúcido */
+}
+
+/* Barra de avance dentro de la línea actual (interpolación) — guía de flow. */
 .line-progress {
     margin: 0.5rem auto 0;
     width: 70%;
     max-width: 22rem;
     height: 3px;
     border-radius: 3px;
+    background: rgba(255, 255, 255, 0.18);
     overflow: hidden;
 }
 
 .line-progress-fill {
     height: 100%;
     border-radius: 3px;
+    background: #ffd24a;
     /* El modelo llega a ~10 Hz; una transición corta suaviza el avance. */
     transition: width 0.12s linear;
 }
@@ -148,213 +176,7 @@ ruby > rt {
     font-size: 0.4em;
     font-weight: 400;
     letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
     margin-top: 0.35rem !important;
-}
-
-.track-info {
-    position: absolute;
-    bottom: 2.25rem;
-    font-size: 1rem;
-    -webkit-app-region: no-drag !important;
-    pointer-events: auto;
-}
-
-.track-info h2,
-.track-info h3 {
-    margin: 0;
-    font-weight: 400;
-    font-size: 0.9rem;
-}
-
-/* Chip "via <fuente>": sutil, hereda el halo del track-info según el fondo. */
-.lyrics-source-chip {
-    display: inline-block;
-    margin-top: 0.15rem;
-    font-size: 0.6rem;
-    opacity: 0.65;
-    font-style: italic;
-}
-
-/* ====================================================================== */
-/* Contraste adaptativo (Capa 2): el color del texto se elige según la       */
-/* luminancia del fondo muestreada por el main (backgroundSampler). Sin     */
-/* scrim → ventana realmente transparente. El halo fino del color opuesto   */
-/* es la red de seguridad para bordes mezclados (mitad claro/oscuro).        */
-/* ====================================================================== */
-
-/* --- Fondo OSCURO → texto BLANCO + halo negro fino --- */
-.dark-bg .lyrics-current p {
-    color: #fff;
-    text-shadow:
-        -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000,
-        -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000,
-        0 0 8px rgba(0, 0, 0, 0.9);
-}
-
-.dark-bg .lyrics-previous p,
-.dark-bg .lyrics-next p {
-    color: rgba(255, 255, 255, 0.55);
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000,
-        0 0 5px rgba(0, 0, 0, 0.85);
-}
-
-.dark-bg .line-romaji {
-    color: rgba(255, 255, 255, 0.78);
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000,
-        0 0 5px rgba(0, 0, 0, 0.85);
-}
-
-.dark-bg ruby > rt {
-    color: #fff;
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000;
-}
-
-.dark-bg .track-info,
-.dark-bg .idle-footer {
-    color: rgba(255, 255, 255, 0.72);
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000,
-        0 0 6px rgba(0, 0, 0, 0.9);
-}
-
-/* --- Fondo CLARO → texto NEGRO + halo blanco fino --- */
-.light-bg .lyrics-current p {
-    color: #000;
-    text-shadow:
-        -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff,
-        -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff,
-        0 0 8px rgba(255, 255, 255, 0.9);
-}
-
-.light-bg .lyrics-previous p,
-.light-bg .lyrics-next p {
-    color: rgba(0, 0, 0, 0.62);
-    text-shadow:
-        -1px -1px 0 #fff, 1px -1px 0 #fff,
-        -1px 1px 0 #fff, 1px 1px 0 #fff,
-        0 0 5px rgba(255, 255, 255, 0.85);
-}
-
-.light-bg .line-romaji {
-    color: rgba(0, 0, 0, 0.78);
-    text-shadow:
-        -1px -1px 0 #fff, 1px -1px 0 #fff,
-        -1px 1px 0 #fff, 1px 1px 0 #fff,
-        0 0 5px rgba(255, 255, 255, 0.85);
-}
-
-.light-bg ruby > rt {
-    color: #000;
-    text-shadow:
-        -1px -1px 0 #fff, 1px -1px 0 #fff,
-        -1px 1px 0 #fff, 1px 1px 0 #fff;
-}
-
-.light-bg .track-info,
-.light-bg .idle-footer {
-    color: rgba(0, 0, 0, 0.72);
-    text-shadow:
-        -1px -1px 0 #fff, 1px -1px 0 #fff,
-        -1px 1px 0 #fff, 1px 1px 0 #fff,
-        0 0 6px rgba(255, 255, 255, 0.9);
-}
-
-/* Barra de flow: color adaptable según el fondo. */
-.dark-bg .line-progress {
-    background: rgba(255, 255, 255, 0.18);
-}
-.dark-bg .line-progress-fill {
-    background: rgba(255, 255, 255, 0.85);
-}
-.light-bg .line-progress {
-    background: rgba(0, 0, 0, 0.22);
-}
-.light-bg .line-progress-fill {
-    background: rgba(0, 0, 0, 0.82);
-}
-
-/* Resaltado karaoke (palabra activa) adaptable. */
-.dark-bg .kw {
-    color: rgba(255, 255, 255, 0.4);
-}
-.dark-bg .kw-done {
-    color: #ffd24a; /* ámbar salta sobre fondo oscuro */
-}
-.light-bg .kw {
-    color: rgba(0, 0, 0, 0.42);
-}
-.light-bg .kw-done {
-    color: #b8002e; /* carmesí salta sobre fondo claro */
-}
-
-/* ====================================================================== */
-/* Alto contraste MANUAL (override): halo potente 8-dir + texto blanco      */
-/* SIEMPRE. Red de seguridad del usuario si el adaptativo no lo convence.   */
-/* Sin scrim: sigue siendo transparente, solo fuerza el color.             */
-/* ====================================================================== */
-
-.high-contrast .lyrics-current p {
-    color: #fff;
-    -webkit-text-stroke: 1px #000;
-    text-shadow:
-        -2px -2px 0 #000, 2px -2px 0 #000,
-        -2px 2px 0 #000, 2px 2px 0 #000,
-        0 0 6px #000, 0 0 12px rgba(0, 0, 0, 0.95);
-}
-
-.high-contrast .lyrics-previous p,
-.high-contrast .lyrics-next p {
-    color: rgba(255, 255, 255, 0.82);
-    -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.9);
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000,
-        0 0 5px rgba(0, 0, 0, 0.9);
-}
-
-.high-contrast .line-romaji {
-    color: rgba(255, 255, 255, 0.92);
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000,
-        0 0 5px rgba(0, 0, 0, 0.9);
-}
-
-.high-contrast ruby > rt {
-    color: #fff;
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000;
-}
-
-.high-contrast .track-info,
-.high-contrast .idle-footer {
-    color: rgba(255, 255, 255, 0.85);
-    text-shadow:
-        -1px -1px 0 #000, 1px -1px 0 #000,
-        -1px 1px 0 #000, 1px 1px 0 #000,
-        0 0 6px rgba(0, 0, 0, 0.9);
-}
-
-.high-contrast .line-progress {
-    background: rgba(0, 0, 0, 0.55);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
-}
-.high-contrast .line-progress-fill {
-    background: #ffd24a;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
-}
-
-.high-contrast .kw {
-    color: rgba(255, 255, 255, 0.5);
-}
-.high-contrast .kw-done {
-    color: #ffd24a;
 }
