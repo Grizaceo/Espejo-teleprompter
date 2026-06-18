@@ -8,3 +8,15 @@
   text-align: center;
   -webkit-app-region: no-drag; /* Captura clics en root */
 }
+
+/* Contenedor de toda la "chrome" (controles). Se atenúa por completo mientras
+   la letra corre sincronizada, dejando solo la letra; reaparece al mover el
+   mouse. No bloquea eventos cuando está oculto. */
+.app-chrome {
+  transition: opacity 0.4s ease;
+}
+
+.app-chrome.chrome-hidden {
+  opacity: 0;
+  pointer-events: none;
+}

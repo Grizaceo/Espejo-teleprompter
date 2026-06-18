@@ -51,6 +51,8 @@
 .win-btn.drag-handle-btn {
   cursor: grab;
   -webkit-app-region: drag !important;  /* Este botón arrastra la ventana */
+  width: 40px;
+  letter-spacing: 2px;
   font-size: 0.9rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.7);
