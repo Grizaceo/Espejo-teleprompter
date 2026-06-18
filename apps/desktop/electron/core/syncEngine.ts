@@ -5,7 +5,7 @@
 // devuelve un RenderModel con una ventana de `windowSize` líneas antes/después.
 // ============================================================================
 
-import type { RenderModel, Status, TimedLyrics } from '../../src/types';
+import type { LyricLine, RenderLine, RenderModel, Status, TimedLyrics } from '../../src/types';
 
 export interface RenderConfig {
   /** Número de líneas de contexto antes y después de la línea actual. */
@@ -13,9 +13,14 @@ export interface RenderConfig {
   mirrorMode: boolean;
 }
 
+/** Convierte una línea de letra en línea de render (original + lecturas + words). */
+function toRenderLine(line: LyricLine): RenderLine {
+  return { text: line.text, furigana: line.furigana, romaji: line.romaji, words: line.words };
+}
+
 const NO_LYRICS_MODEL: RenderModel = {
   previous_lines: [],
-  current_line: '',
+  current_line: { text: '' },
   next_lines: [],
   status: 'NO_LYRICS',
   font_scale: 1.0,
@@ -38,15 +43,6 @@ export class SyncEngine {
 
   getLyrics(): TimedLyrics | null {
     return this.currentLyrics;
-  }
-
-  /**
-   * Update offset based on recognition match.
-   * En la versión Python es un no-op; el cálculo de posición lo hace el
-   * StateStore a partir del match. Se conserva por paridad con la API original.
-   */
-  updateMatch(_positionMs: number, _matchedAt: number): void {
-    // Intencionalmente vacío — paridad con libs/sync/engine.py.
   }
 
   getRenderModel(positionMs: number, status: Status = 'DISPLAYING'): RenderModel {
@@ -84,8 +80,8 @@ export class SyncEngine {
         // Intro instrumental: mostrar "..." con la próxima línea.
         return {
           previous_lines: [],
-          current_line: '...',
-          next_lines: [lines[0].text],
+          current_line: { text: '...' },
+          next_lines: [toRenderLine(lines[0])],
           font_scale: 1.0,
           opacity: 1.0,
           alignment: 'center',
@@ -102,20 +98,50 @@ export class SyncEngine {
     const startPrev = Math.max(0, currentIndex - windowSize);
     const endNext = Math.min(lines.length, currentIndex + 1 + windowSize);
 
-    const previousLines: string[] = [];
+    const previousLines: RenderLine[] = [];
     for (let i = startPrev; i < currentIndex; i++) {
-      previousLines.push(lines[i].text);
+      previousLines.push(toRenderLine(lines[i]));
     }
-    const currentText = lines[currentIndex].text;
-    const nextLines: string[] = [];
+    const currentLine = toRenderLine(lines[currentIndex]);
+    const nextLines: RenderLine[] = [];
     for (let i = currentIndex + 1; i < endNext; i++) {
-      nextLines.push(lines[i].text);
+      nextLines.push(toRenderLine(lines[i]));
+    }
+
+    // Avance interpolado dentro de la línea actual (solo con letra sincronizada).
+    let currentProgress: number | undefined;
+    if (lyrics.synced) {
+      const cur = lines[currentIndex];
+      let end: number;
+      if (cur.end_ms != null) end = cur.end_ms;
+      else if (currentIndex + 1 < lines.length) end = lines[currentIndex + 1].start_ms;
+      else end = NaN;
+      if (Number.isFinite(end) && end > cur.start_ms) {
+        currentProgress = Math.max(0, Math.min(1, (positionMs - cur.start_ms) / (end - cur.start_ms)));
+      }
+    }
+
+    // Karaoke por palabra REAL (Enhanced LRC): índice de la última palabra de
+    // la línea actual cuyo start_ms <= posición. Precisión exacta por timing,
+    // sin interpolar. Si no hay `words`, el renderer cae a la interpolación.
+    let currentWordIndex: number | undefined;
+    const curWords = lines[currentIndex].words;
+    if (curWords && curWords.length > 0) {
+      let idx = -1;
+      for (let w = 0; w < curWords.length; w++) {
+        if (curWords[w].start_ms <= positionMs) idx = w;
+        else break;
+      }
+      // idx = -1 si todavía no arrancó ninguna palabra (estamos antes de la 1ª).
+      currentWordIndex = idx;
     }
 
     return {
       previous_lines: previousLines,
-      current_line: currentText,
+      current_line: currentLine,
       next_lines: nextLines,
+      current_progress: currentProgress,
+      current_word_index: currentWordIndex,
       font_scale: 1.0,
       opacity: 1.0,
       alignment: 'center',

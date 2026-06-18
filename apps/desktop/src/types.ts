@@ -36,11 +36,30 @@ export interface TrackMatch {
   matched_at: number; // timestamp local (ms desde epoch) del match
 }
 
+/** Segmento de furigana: texto base + lectura en kana (rt) opcional. */
+export interface FuriganaSegment {
+  base: string;
+  rt?: string;
+}
+
+/** Una palabra con timing individual (Enhanced LRC / A2: <mm:ss.xx>palabra). */
+export interface WordTiming {
+  text: string;
+  start_ms: number;
+}
+
 /** Una línea de letra con timestamps en milisegundos. */
 export interface LyricLine {
   start_ms: number;
   end_ms?: number | null;
+  /** Texto original (kanji/kana, hangul, etc). Nunca se destruye. */
   text: string;
+  /** Lectura para ruby (furigana japonés). Solo si aporta sobre `text`. */
+  furigana?: FuriganaSegment[];
+  /** Romanización latina (hepburn JP / pinyin ZH / translit KO). */
+  romaji?: string;
+  /** Timing por palabra (Enhanced LRC). Permite karaoke preciso, no interpolado. */
+  words?: WordTiming[];
 }
 
 /** Letras con timestamps. `synced=false` indica letra plana (sin LRC). */
@@ -50,11 +69,30 @@ export interface TimedLyrics {
   synced: boolean;
 }
 
+/** Una línea lista para mostrar: original + ayudas de lectura. */
+export interface RenderLine {
+  text: string;
+  furigana?: FuriganaSegment[];
+  romaji?: string;
+  words?: WordTiming[];
+}
+
+/** Modo de lectura elegido por el usuario (estado del renderer, persistido). */
+export type ReadingMode = 'original' | 'furigana' | 'romaji' | 'furigana_romaji';
+
 /** Estado que el main envía al renderer por IPC ~10 veces por segundo. */
 export interface RenderModel {
-  previous_lines: string[];
-  current_line: string;
-  next_lines: string[];
+  previous_lines: RenderLine[];
+  current_line: RenderLine;
+  next_lines: RenderLine[];
+
+  /** Avance dentro de la línea actual (0..1), solo con letra sincronizada.
+   *  Permite un resaltado karaoke interpolado para seguir el flow. */
+  current_progress?: number;
+
+  /** Índice de la palabra activa en la línea actual (Enhanced LRC). Cuando está
+   *  presente, el renderer hace karaoke por timing REAL en vez de interpolar. */
+  current_word_index?: number;
 
   font_scale: number;
   opacity: number;
@@ -63,6 +101,9 @@ export interface RenderModel {
 
   track_title?: string;
   track_artist?: string;
+  /** Fuente de la letra ('lrclib' | 'audd' | 'lyrics.ovh' | 'genius'). Para el
+   *  chip "via <fuente>" en el renderer y debug. */
+  lyrics_source?: string;
   status: Status;
 }
 
@@ -79,7 +120,18 @@ export interface DesktopApi {
     mimeType: string,
     recordStartedAt: number,
   ) => Promise<{ ok: boolean; matched: boolean; error?: string }>;
+  correctAudio: (
+    audio: ArrayBuffer,
+    mimeType: string,
+    recordStartedAt: number,
+  ) => Promise<{ ok: boolean; matched: boolean; changed?: boolean; error?: string }>;
   stopRecognition: () => Promise<{ ok: boolean }>;
+
+  // Sync: seek manual + offset crónico
+  nudgeSync: (deltaMs: number) => Promise<{ ok: boolean }>;
+  seekLine: (direction: -1 | 1) => Promise<{ ok: boolean }>;
+  adjustSyncOffset: (deltaMs: number) => Promise<{ ok: boolean; offsetMs: number }>;
+  getSyncOffset: () => Promise<{ ok: boolean; offsetMs: number }>;
 
   // Window controls
   minimize: () => Promise<{ ok: boolean }>;
