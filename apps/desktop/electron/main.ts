@@ -19,6 +19,7 @@ import type { OffsetStore } from './services/settings';
 import { FileLyricsCache } from './services/cache/lyricsCache';
 import { LyricsService } from './services/lyrics/lyricsService';
 import { SmtcReader } from './services/smtc/smtcReader';
+import { resolveSmtcSidecar } from './services/smtc/smtcPath';
 import type { RecognitionPhase } from './core/stateStore';
 import { setupContentSecurityPolicy } from './csp';
 
@@ -331,9 +332,27 @@ function bootstrap(): void {
   registerIpcHandlers();
 
   // Capa b: reproductor del SO (SMTC) como reloj maestro. No-op si no hay
-  // sidecar (env SMTC_SIDECAR) o no es Windows; AudD sigue como fallback.
-  smtcReader = new SmtcReader(stateStore, process.env.SMTC_SIDECAR ?? '');
+  // sidecar ni Windows; AudD sigue como fallback. Ruta del sidecar:
+  //   1. SMTC_SIDECAR (env) explícita; 2. autodetección native/smtc/dist.
+  const smtcExe = resolveSmtcSidecar(process.env.SMTC_SIDECAR, smtcSidecarRoots());
+  smtcReader = new SmtcReader(stateStore, smtcExe);
   smtcReader.start();
+}
+
+/**
+ * Raíces candidatas donde buscar native/smtc/dist/espejo-smtc.exe.
+ * Cubre dev (repo root desde __dirname y cwd) y empaquetado (resources).
+ */
+function smtcSidecarRoots(): string[] {
+  // __dirname en dev compilado = dist-electron/electron → repo root = ../../../../
+  const fromDirname = path.join(__dirname, '..', '..', '..', '..');
+  return [
+    process.cwd(),
+    app.getAppPath(),
+    fromDirname,
+    // Recursos empaquetados (extraResources copia native/smtc/dist al root).
+    process.resourcesPath,
+  ].filter((r): r is string => typeof r === 'string' && r.length > 0);
 }
 
 // Solo se permite una instancia del widget.

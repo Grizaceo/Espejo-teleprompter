@@ -67,6 +67,49 @@ Genera el instalador en `apps\desktop\release\Espejo Teleprompter-Setup-0.1.0.ex
 (NSIS x64, según `electron-builder.yml`). Incluye el diccionario de kuromoji para
 que el furigana funcione en la app empaquetada.
 
+## 5. SMTC — el reproductor del SO como reloj maestro (recomendado)
+
+El **sidecar SMTC** (C# / .NET 8) lee la sesión de medios de Windows
+(Spotify, YouTube/YT Music en el navegador, etc.) y la convierte en el reloj
+maestro de la app: metadata + playhead real + play/pausa/seek/skip con eventos,
+**sin capturar audio ni gastar AudD**. AudD queda como fallback (vinilo, en
+vivo, web sin SMTC, micrófono). Detalles del protocolo en
+`native/smtc/README.md`.
+
+### Compilar el sidecar (una sola vez, requiere .NET 8 SDK)
+
+Instala el **SDK de .NET 8** (https://dotnet.microsoft.com) y, desde la raíz
+del repo en **PowerShell**:
+
+```powershell
+./native/smtc/build.ps1
+# equivalente manual: cd native/smtc ; dotnet publish -c Release -r win-x64 --self-contained false -o dist
+```
+
+Genera `native/smtc/dist/espejo-smtc.exe` (win-x64, *framework-dependent*:
+necesita el runtime de .NET 8 en la máquina). Compílalo en Windows; no se
+compila desde WSL/Linux.
+
+### Conectar con la app (autodetección)
+
+La app resuelve la ruta del sidecar en este orden (`smtcPath.ts`):
+
+1. `SMTC_SIDECAR` (ruta explícita, opcional):
+   ```powershell
+   $env:SMTC_SIDECAR="C:\dev\Espejo-teleprompter\native\smtc\dist\espejo-smtc.exe"
+   ```
+2. **Autodetección**: sin la env, busca `native/smtc/dist/espejo-smtc.exe` bajo
+   el repo. Si compilaste con el script, **no hace falta** configurar nada.
+3. Si no existe, SMTC queda fuera y la app usa AudD. Fuera de Windows es no-op.
+
+### Smoke test
+
+Con el sidecar compilado y la app corriendo (`npm run dev:electron:win`),
+reproduce algo en Spotify o en el navegador: play/pausa/seek/skip deben seguir
+al instante sin deriva, y la metadata dispara el prefetch de la letra a la
+caché. Mira la consola del main: `[smtc]` indica estado; si dice "sidecar no
+encontrado", revisa la ruta o compílalo.
+
 ## Troubleshooting
 
 | Síntoma | Causa / solución |
@@ -76,3 +119,5 @@ que el furigana funcione en la app empaquetada.
 | Medidor en silencio (▱▱▱▱▱ rojo) | Volumen del sistema bajo o nada reproduciéndose. |
 | "AudD #900/#901" | Falta token o cuota agotada → revisa `.env`. |
 | No reconoce la canción | Señal baja (mira el medidor) o no está en la base de AudD. |
+| `[smtc] sidecar no encontrado` | No compilaste el sidecar (paso 5) o la ruta `SMTC_SIDECAR` apunta mal. |
+| Deriva o no sigue seek/skip | SMTC no está activo; sin él la app depende de AudD (más lento y con deriva). Compila el sidecar. |

@@ -8,6 +8,13 @@ directories:
   output: release
   buildResources: build
 
+# Incluye el sidecar SMTC compilado (native/smtc/dist) en los recursos de la
+# app empaquetada; smtcPath.ts lo autodetecta bajo process.resourcesPath.
+extraResources:
+  - from: ../native/smtc/dist
+    to: native/smtc/dist
+    filter: ['**/*']
+
 files:
   - dist/**/*
   - dist-electron/**/*

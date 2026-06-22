@@ -19,24 +19,33 @@ sin capturar audio ni gastar llamadas a AudD. AudD queda como *fallback*.
 
 ## Build (en Windows, con .NET 8 SDK)
 
+Desde la raíz del repo (el script baja a `native/smtc/` solo):
+
 ```powershell
-cd native/smtc
-dotnet publish -c Release -r win-x64 --self-contained false -o dist
+./native/smtc/build.ps1
+# o, a mano:
+# cd native/smtc ; dotnet publish -c Release -r win-x64 --self-contained false -o dist
 ```
 
-Genera `dist/espejo-smtc.exe`.
+Genera `native/smtc/dist/espejo-smtc.exe` (framework-dependent: requiere el
+runtime de .NET 8 instalado en la máquina que lo ejecute).
+
+> El sidecar es **win-x64**; compílalo en Windows (o donde tengas el SDK de
+> .NET 8 con el workload de Windows). No se compila desde WSL/Linux.
 
 ## Conectar con la app
 
-El reader busca el ejecutable en la variable de entorno `SMTC_SIDECAR`:
+La app resuelve la ruta del sidecar en este orden (`smtcPath.ts`):
 
-```powershell
-$env:SMTC_SIDECAR="C:\ruta\a\native\smtc\dist\espejo-smtc.exe"
-```
-
-Si la variable no está o el archivo no existe, SMTC queda deshabilitado y la app
-sigue funcionando con reconocimiento por AudD (sistema/micrófono). Fuera de
-Windows el reader es no-op.
+1. Variable de entorno `SMTC_SIDECAR` (ruta explícita, se respeta tal cual):
+   ```powershell
+   $env:SMTC_SIDECAR="C:\ruta\a\native\smtc\dist\espejo-smtc.exe"
+   ```
+2. **Autodetección**: si la env no está, busca `native/smtc/dist/espejo-smtc.exe`
+   bajo el repo (cwd / app path / `__dirname` relativo / recursos empaquetados).
+   Si compilaste con el script, la app lo encuentra **sin** tocar la env.
+3. Si ninguna existe, SMTC queda deshabilitado y la app sigue con AudD
+   (sistema/micrófono). Fuera de Windows el reader es no-op.
 
 ## Equivalentes para portar a futuro
 - **Linux:** MPRIS (D-Bus `org.mpris.MediaPlayer2`).
