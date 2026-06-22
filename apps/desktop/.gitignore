@@ -9,6 +9,12 @@ dist-electron/
 out/
 build/Release/
 
+# Artefactos de compilación TS que terminan en src/ (tsconfig tiene noEmit,
+# pero tsc antiguo/vite puede dejar .js/.map sueltos). Solo hay .ts/.tsx en src/.
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+
 # Logs
 *.log
 npm-debug.log*
