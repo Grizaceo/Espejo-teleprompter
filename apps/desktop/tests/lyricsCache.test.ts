@@ -30,6 +30,7 @@ describe('FileLyricsCache', () => {
     expect(a?.lines[0].text).toBe('hola');
     await c.get('k1');
     expect(c.stats().entries).toBe(1);
+    c.flush(); // evita timer diferido pendiente tras el test
   });
 
   it('persiste entre instancias (índice + payload gzip en disco)', async () => {
@@ -39,6 +40,7 @@ describe('FileLyricsCache', () => {
     const out = await c2.get('k1');
     expect(out?.lines[0].text).toBe('persist');
     expect(fs.existsSync(path.join(dir, 'index.json'))).toBe(true);
+    c2.flush();
   });
 
   it('markNotFound → isNegative y get null', async () => {
@@ -78,5 +80,45 @@ describe('FileLyricsCache', () => {
     c.clear();
     expect(c.stats().entries).toBe(0);
     expect(await c.get('k1')).toBeNull();
+  });
+
+  it('debouncea persist en get() (no reescribe el índice en cada play)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const c = new FileLyricsCache(dir, { persistDebounceMs: 1000 });
+    await c.put('k1', lyrics('hola'), meta('K1')); // playCount=1, persist inmediato
+    const idx = () =>
+      JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8')) as {
+        entries: { k1: { playCount: number } };
+      };
+
+    // Tres re-escuchas rápidas sin avanzar el reloj: solo un persist diferido.
+    await c.get('k1');
+    await c.get('k1');
+    await c.get('k1');
+    expect(idx().entries.k1.playCount).toBe(1); // disco aún sin el boost
+    expect(c.stats().entries).toBe(1);
+
+    // Al expirar el debounce, una sola escritura deja el playCount final.
+    vi.advanceTimersByTime(1000);
+    expect(idx().entries.k1.playCount).toBe(4);
+    c.flush(); // no-op (ya persistió), deja el timer limpio
+  });
+
+  it('persist() inmediato coalesce con el debounce pendiente', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const c = new FileLyricsCache(dir, { persistDebounceMs: 1000 });
+    await c.put('k1', lyrics('a'), meta('K1')); // playCount=1
+    await c.get('k1'); // programado para t=1000
+    // Un put posterior (escritura inmediata) cancela el debounce pendiente.
+    await c.put('k2', lyrics('b'), meta('K2'));
+    vi.advanceTimersByTime(1000); // no debe doble-escribir ni revivir el timer
+    const onDisk = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8')) as {
+      entries: Record<string, { playCount: number }>;
+    };
+    expect(onDisk.entries.k1.playCount).toBe(2); // el boost del get quedó persistido por el put
+    expect(onDisk.entries.k2).toBeDefined();
+    c.flush();
   });
 });

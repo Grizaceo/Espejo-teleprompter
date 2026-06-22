@@ -54,6 +54,8 @@ export interface CacheOptions {
   negativeTtlMs: number;
   /** Peso de cada reproducción en el score de eviction (ms equivalentes). */
   playWeightMs: number;
+  /** Debounce de la escritura del índice en get() (ms). 0 = escritura inmediata. */
+  persistDebounceMs: number;
 }
 
 export const DEFAULT_CACHE_OPTIONS: CacheOptions = {
@@ -61,6 +63,7 @@ export const DEFAULT_CACHE_OPTIONS: CacheOptions = {
   maxBytes: 100 * 1024 * 1024, // 100 MB
   negativeTtlMs: 7 * 24 * 60 * 60 * 1000, // 7 días
   playWeightMs: 3 * 24 * 60 * 60 * 1000, // cada play "vale" 3 días de recencia
+  persistDebounceMs: 1000, // el boost de re-escucha no reescribe el índice en cada play
 };
 
 function sha1(s: string): string {
@@ -78,6 +81,8 @@ export class FileLyricsCache implements LyricsCache {
   private readonly baseDir: string;
   private readonly opts: CacheOptions;
   private index: CacheIndexShape = { schemaVersion: SCHEMA_VERSION, entries: {} };
+  /** Timer del persist diferido (boost de get); null si no hay pendiente. */
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(baseDir: string, opts: Partial<CacheOptions> = {}) {
     this.baseDir = baseDir;
@@ -108,8 +113,14 @@ export class FileLyricsCache implements LyricsCache {
     this.dropExpiredNegatives();
   }
 
-  /** Escritura atómica del índice (tmp + rename) para no corromper. */
+  /** Escritura atómica del índice (tmp + rename) para no corromper.
+   *  Cancela cualquier persist diferido pendiente (coalesce): el estado en
+   *  memoria ya incluye esos cambios, así que la escritura inmediata los cubre. */
   private persist(): void {
+    if (this.persistTimer != null) {
+      clearTimeout(this.persistTimer);
+      this.persistTimer = null;
+    }
     try {
       fs.mkdirSync(this.baseDir, { recursive: true });
       const tmp = this.indexPath() + '.tmp';
@@ -117,6 +128,30 @@ export class FileLyricsCache implements LyricsCache {
       fs.renameSync(tmp, this.indexPath());
     } catch (err) {
       console.error('[cache] no se pudo guardar el índice:', err);
+    }
+  }
+
+  /** Persistencia diferida para el boost de re-escucha en get(): evita
+   *  reescribir el índice completo en cada playCount++. Si persistDebounceMs es
+   *  0, escribe igual que persist() (compat). */
+  private schedulePersist(): void {
+    if (this.opts.persistDebounceMs <= 0) {
+      this.persist();
+      return;
+    }
+    if (this.persistTimer != null) return; // ya hay una escritura pendiente
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      this.persist();
+    }, this.opts.persistDebounceMs);
+  }
+
+  /** Fuerza la escritura diferida pendiente (graceful shutdown / tests). */
+  flush(): void {
+    if (this.persistTimer != null) {
+      clearTimeout(this.persistTimer);
+      this.persistTimer = null;
+      this.persist();
     }
   }
 
@@ -138,10 +173,12 @@ export class FileLyricsCache implements LyricsCache {
     try {
       const gz = fs.readFileSync(this.payloadPath(entry.lyricsFile));
       const lyrics = JSON.parse(gunzipSync(gz).toString('utf8')) as TimedLyrics;
-      // Boost de re-escucha: sube frecuencia y recencia.
+      // Boost de re-escucha: sube frecuencia y recencia. La escritura del
+      // índice se debouncea — el estado en memoria es el que importa para
+      // score/prune; el disco se actualiza una vez por ventana.
       entry.lastHeardAt = Date.now();
       entry.playCount += 1;
-      this.persist();
+      this.schedulePersist();
       return lyrics;
     } catch {
       // Payload perdido/corrupto → limpiar la entrada y tratar como miss.
